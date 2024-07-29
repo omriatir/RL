@@ -58,8 +58,7 @@ class TDZero:
     def update(self, state, reward, next_state):
         next_state = min(next_state, 22) # Cap the next state to 22
         self.value_function[state] += self.alpha * (reward + self.gamma * self.value_function[next_state] - self.value_function[state])
-        print(f"This is state: {state} This is next state: {next_state}")
-        print(self.value_function)
+
 
 
 
@@ -139,7 +138,6 @@ def main_sarsa():
 
     # Print the optimal policy and state value function
     print("Optimal policy:")
-    print(state_value_function)
     state_value_function[22] = 0
     for i in range(4,22):
         state_value_function[i] = abs(state_value_function[i])
@@ -155,38 +153,29 @@ def main_sarsa():
 
 def main_td0():
     env = Blackjack()
-    td = TDZero(alpha=0.1, gamma=1.0)
-    num_episodes = 10
-    reset = 0
+    td = TDZero(alpha=0.3, gamma=1.0)
+    num_episodes = 10000
 
     for _ in range(num_episodes):
-        if reset == 0:
-            state = env.reset()
+        state = env.reset()
         done = False
-        reset = 0
         while not done:
             action = "hit" if gambler_policy(state) else "stand"
             next_state, done = env.step(action)
-            if next_state > 21:
-                next_state = env.reset()
-                td.update(state, -1, next_state)
-                reset = 1
-                done = True
-                state = next_state
-            else:
-                reward = 0 if not done else env.play_game()
-                td.update(state, reward, next_state)
-                state = next_state
+            reward = 0 if not done else env.play_game()
+            td.update(state, reward, next_state)
+            state = next_state
 
 
-    # Calculate the probabilities of winning from every initial state
-    td.value_function[22] = 0
-    print(td.value_function)
-    maxValue = max(td.value_function.values())
-    for i in range(4,22):
-        td.value_function[i] = td.value_function[i] / maxValue
-    win_probabilities = (td.value_function)
-    for state in win_probabilities.keys():
+    # Normalize the value function to represent win probabilities
+    min_value = min(td.value_function.values())
+    max_value = max(td.value_function.values())
+    for state in td.value_function.keys():
+        td.value_function[state] = (td.value_function[state] - min_value) / (max_value - min_value)
+
+    td.value_function[21] = 1.0
+    win_probabilities = td.value_function
+    for state in sorted(win_probabilities.keys()):
         print(f"State {state}, Estimated probability of winning for the gambler: {win_probabilities[state]}")
 
 
